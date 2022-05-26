@@ -88,6 +88,23 @@ impl Hasher for FxHasher {
         #[cfg(target_pointer_width = "64")]
         let read_usize = |bytes: &[u8]| u64::from_ne_bytes(bytes[..8].try_into().unwrap());
 
+        const MAX_LEN: usize = 128;
+
+        let len = bytes.len();
+        if len > MAX_LEN {
+            //           .,
+            //           .      _,'f----.._
+            //  GOTTA    |\ ,-'"/  |     ,'
+            //           |,_  ,--.      /
+            //  HASH     /,-. ,'`.     (_
+            //           f  o|  o|__     "`-.
+            //  LESS     ,-._.,--'_ `.   _.,-`
+            //           `"' ___.,'` j,-'
+            //             `-.__.,--'
+            self.add_to_hash(len);
+            bytes = &bytes[..MAX_LEN];
+        }
+
         let mut hash = FxHasher { hash: self.hash };
         assert!(size_of::<usize>() <= 8);
         while bytes.len() >= size_of::<usize>() {
