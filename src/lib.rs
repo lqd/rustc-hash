@@ -34,7 +34,7 @@ use core::default::Default;
 use core::hash::BuildHasherDefault;
 use core::hash::Hasher;
 use core::mem::size_of;
-use core::ops::BitXor;
+// use core::ops::BitXor;
 #[cfg(feature = "std")]
 use std::collections::{HashMap, HashSet};
 
@@ -61,10 +61,10 @@ pub struct FxHasher {
     hash: usize,
 }
 
-#[cfg(target_pointer_width = "32")]
-const K: usize = 0x9e3779b9;
-#[cfg(target_pointer_width = "64")]
-const K: usize = 0x517cc1b727220a95;
+// #[cfg(target_pointer_width = "32")]
+// const K: usize = 0x9e3779b9;
+// #[cfg(target_pointer_width = "64")]
+// const K: usize = 0x517cc1b727220a95;
 
 impl Default for FxHasher {
     #[inline]
@@ -73,12 +73,12 @@ impl Default for FxHasher {
     }
 }
 
-impl FxHasher {
-    #[inline]
-    fn add_to_hash(&mut self, i: usize) {
-        self.hash = self.hash.rotate_left(5).bitxor(i).wrapping_mul(K);
-    }
-}
+// impl FxHasher {
+//     #[inline]
+//     fn add_to_hash(&mut self, i: usize) {
+//         self.hash = self.hash.rotate_left(5).bitxor(i).wrapping_mul(K);
+//     }
+// }
 
 impl Hasher for FxHasher {
     #[inline]
@@ -91,36 +91,36 @@ impl Hasher for FxHasher {
         let mut hash = FxHasher { hash: self.hash };
         assert!(size_of::<usize>() <= 8);
         while bytes.len() >= size_of::<usize>() {
-            hash.add_to_hash(read_usize(bytes) as usize);
+            hash.write_usize(read_usize(bytes) as usize);
             bytes = &bytes[size_of::<usize>()..];
         }
         if (size_of::<usize>() > 4) && (bytes.len() >= 4) {
-            hash.add_to_hash(u32::from_ne_bytes(bytes[..4].try_into().unwrap()) as usize);
+            hash.write_usize(u32::from_ne_bytes(bytes[..4].try_into().unwrap()) as usize);
             bytes = &bytes[4..];
         }
         if (size_of::<usize>() > 2) && bytes.len() >= 2 {
-            hash.add_to_hash(u16::from_ne_bytes(bytes[..2].try_into().unwrap()) as usize);
+            hash.write_usize(u16::from_ne_bytes(bytes[..2].try_into().unwrap()) as usize);
             bytes = &bytes[2..];
         }
         if (size_of::<usize>() > 1) && bytes.len() >= 1 {
-            hash.add_to_hash(bytes[0] as usize);
+            hash.write_usize(bytes[0] as usize);
         }
         self.hash = hash.hash;
     }
 
     #[inline]
     fn write_u8(&mut self, i: u8) {
-        self.add_to_hash(i as usize);
+        self.hash = self.hash.wrapping_add(i as usize);
     }
 
     #[inline]
     fn write_u16(&mut self, i: u16) {
-        self.add_to_hash(i as usize);
+        self.hash = self.hash.wrapping_add(i as usize);
     }
 
     #[inline]
     fn write_u32(&mut self, i: u32) {
-        self.add_to_hash(i as usize);
+        self.hash = self.hash.wrapping_add(i as usize).wrapping_mul(0xea7ef01995b8b675);
     }
 
     #[cfg(target_pointer_width = "32")]
@@ -133,12 +133,12 @@ impl Hasher for FxHasher {
     #[cfg(target_pointer_width = "64")]
     #[inline]
     fn write_u64(&mut self, i: u64) {
-        self.add_to_hash(i as usize);
+        self.hash = self.hash.wrapping_add(i as usize).wrapping_mul(0xea7ef01995b8b675);
     }
 
     #[inline]
     fn write_usize(&mut self, i: usize) {
-        self.add_to_hash(i);
+        self.hash = self.hash.wrapping_add(i).wrapping_mul(0xea7ef01995b8b675);
     }
 
     #[inline]
